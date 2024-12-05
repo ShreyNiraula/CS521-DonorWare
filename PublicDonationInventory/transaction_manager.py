@@ -201,7 +201,6 @@ class TransactionManager:
         final_query = (
             f"SELECT Category, {', '.join(common_columns)}, user_name FROM ({query})"
         )
-        print(final_query)
         return ["Category"] + common_columns + ["user_name"], self.db_manager.fetchall(
             final_query
         )

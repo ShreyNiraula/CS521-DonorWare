@@ -36,23 +36,24 @@ DonorWare is a Python-based warehouse management system designed to facilitate t
    ```bash
    git clone https://github.com/ShreyNiraula/CS521-DonorWare.git
 
-2. Navigate to project directory
+2. Create Virtual environment 
+   ```bash
+    python3 -m venv <name_of_virutalenv>
+    cd <name_of_virutalenv>
+    For mac/linux: source <name_of_virutalenv>/bin/activate
+    
+3. Navigate to project directory
     ```bash
    cd CS521-DonorWare
 
-3. Create the virtual environment
-    ```bash
-    python3 -m venv <name_of_virutalenv>
-
-    For mac/linux: source <name_of_virutalenv>/bin/activate
-
 4. In Virtual environment, pip install requirements as:
    ```bash
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt
 
 5. Run the application:
     ```bash
-   python main.py
+   cd PublicDonationInventory
+   python3 main.py
    
 
 ## Once the application is running, follow These Steps:
