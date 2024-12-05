@@ -298,7 +298,7 @@ class TransactionManager:
         action = "to search"
         if is_borrow:
             action = "to borrow"
-        elif is_return:
+        if is_return:
             action = "to return"
 
         while True:
