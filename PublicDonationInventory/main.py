@@ -35,10 +35,13 @@ def authenticate(db_manager: DBManager) -> Optional[str]:
 
     :return: The authenticated user name, or None if the user chose to exit.
     """
-    Utils.rich_print("\nWELCOME TO PUBLIC DONATION SYSTEM\n", tag="prompt")
+    Utils.show_banner()
 
     while True:
-        Utils.rich_print("1. Register\n2. Login\n3. Exit", tag="info")
+        Utils.show_menu(
+            "Welcome",
+            [("1", "✨  Register"), ("2", "🔑  Login"), ("3", "👋  Exit")],
+        )
         action = Utils.rich_prompting(
             "From the options, select your choice (number)", tag="prompt"
         ).strip()
@@ -65,7 +68,9 @@ def authenticate(db_manager: DBManager) -> Optional[str]:
             return user_name
 
 
-def show_table(columns, results, empty_message: str, empty_tag: str = "error") -> bool:
+def show_table(
+    columns, results, empty_message: str, empty_tag: str = "error", title: str = None
+) -> bool:
     """
     Displays results as a table, or a message if there are none.
 
@@ -76,7 +81,7 @@ def show_table(columns, results, empty_message: str, empty_tag: str = "error") -
     if not results:
         Utils.rich_print(empty_message, tag=empty_tag)
         return False
-    Utils.format_output_display(columns=columns, results=results)
+    Utils.format_output_display(columns=columns, results=results, title=title)
     return True
 
 
@@ -84,26 +89,33 @@ def personal_inventory(transaction_manager: TransactionManager) -> None:
     """
     Handles the personal inventory submenu.
     """
-    Utils.rich_print(
-        "\nWhat do you want to do?\n"
-        "1. View items you have contributed.\n"
-        "2. View items you have borrowed so far.\n"
-        "3. View items you are currently borrowing.",
-        tag="info",
+    Utils.show_menu(
+        "Personal Inventory",
+        [
+            ("1", "🎁  Items you have contributed"),
+            ("2", "🕘  Everything you have borrowed so far"),
+            ("3", "📖  Items you are borrowing now"),
+        ],
     )
     choice = Utils.rich_prompting("Enter your choice (number)", tag="prompt").strip()
 
     if choice == "1":
         columns, results = transaction_manager.get_items_added_by_user()
-        show_table(columns, results, "Nothing has been contributed.", "prompt")
+        show_table(
+            columns, results, "Nothing has been contributed.", "prompt", "Your contributions"
+        )
     elif choice == "2":
         # show borrow actions till now, including returned items
         columns, results = transaction_manager.get_transaction_history(is_active=False)
-        show_table(columns, results, "No transaction history so far.", "prompt")
+        show_table(
+            columns, results, "No transaction history so far.", "prompt", "Borrow history"
+        )
     elif choice == "3":
         # show only active borrow items
         columns, results = transaction_manager.get_transaction_history(is_active=True)
-        show_table(columns, results, "No active borrowed items found.", "prompt")
+        show_table(
+            columns, results, "No active borrowed items found.", "prompt", "Currently borrowing"
+        )
     else:
         Utils.rich_print("Invalid choice. Please try again!", tag="error")
 
@@ -116,17 +128,19 @@ def run_session(db_manager: DBManager, user_name: str) -> None:
         db_manager, user_name=user_name, item_types=item_types
     )
 
-    while True:
-        Utils.rich_print("\nChoose action\n", tag="prompt")
+    Utils.show_dashboard(user_name, transaction_manager.get_dashboard_stats())
 
-        Utils.rich_print(
-            "1. Add Items\n"
-            "2. Search Items\n"
-            "3. Borrow Items\n"
-            "4. Return Items\n"
-            "5. Personal Inventory\n"
-            "6. Log out",
-            tag="info",
+    while True:
+        Utils.show_menu(
+            "Main menu",
+            [
+                ("1", "➕  Add Items"),
+                ("2", "🔍  Search Items"),
+                ("3", "📥  Borrow Items"),
+                ("4", "📤  Return Items"),
+                ("5", "👤  Personal Inventory"),
+                ("6", "🚪  Log out"),
+            ],
         )
         action = Utils.rich_prompting("Enter your choice (number)", tag="prompt").strip()
 
@@ -137,7 +151,9 @@ def run_session(db_manager: DBManager, user_name: str) -> None:
             columns, results, item_type_choice = (
                 transaction_manager.initiate_search_or_borrow_or_return_action()
             )
-            if not show_table(columns, results, "No items found for your search."):
+            if not show_table(
+                columns, results, "No items found for your search.", title="Search results"
+            ):
                 continue
             borrow_choice = (
                 Utils.rich_prompting(
@@ -160,7 +176,9 @@ def run_session(db_manager: DBManager, user_name: str) -> None:
                     is_borrow=True
                 )
             )
-            if show_table(columns, results, "No items found for your search."):
+            if show_table(
+                columns, results, "No items found for your search.", title="Available to borrow"
+            ):
                 transaction_manager.complete_borrow_or_return_action(
                     item_type_choice=item_type_choice,
                 )
@@ -172,7 +190,9 @@ def run_session(db_manager: DBManager, user_name: str) -> None:
                     is_return=True,
                 )
             )
-            if show_table(columns, results, "Nothing has been borrowed to return."):
+            if show_table(
+                columns, results, "Nothing has been borrowed to return.", title="Ready to return"
+            ):
                 transaction_manager.complete_borrow_or_return_action(
                     item_type_choice=item_type_choice,
                     is_return=True,
@@ -182,7 +202,7 @@ def run_session(db_manager: DBManager, user_name: str) -> None:
             personal_inventory(transaction_manager)
 
         elif action == "6":
-            Utils.rich_print("Logged out successfully.", tag="success")
+            Utils.rich_print("Logged out successfully. See you soon!", tag="success")
             return
 
         else:

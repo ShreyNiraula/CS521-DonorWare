@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from utils import Utils
+from utils import CATEGORY_ICONS, Utils
 from ordered_set import OrderedSet
 
 from rich.console import Console
@@ -285,11 +285,7 @@ class TransactionManager:
         while True:
             exit_option = len(self.item_types) + 1
 
-            Utils.rich_print("\nSelect item type to add", tag="prompt")
-
-            # dynamically print the item
-            self.print_items()
-            Utils.rich_print(f"{exit_option}. Exit", tag="info")
+            self.show_item_menu("Add an item", [(str(exit_option), "↩  Back to main menu")])
 
             item_type_choice = Utils.rich_prompting(
                 "Enter your choice (number)", tag="prompt"
@@ -328,10 +324,13 @@ class TransactionManager:
             unsure_option = len(self.item_types) + 1
             exit_option = len(self.item_types) + 2
 
-            Utils.rich_print(f"Select item type {action}", tag="prompt")
-            self.print_items()
-            Utils.rich_print(f"{unsure_option}. Unsure about the category", tag="info")
-            Utils.rich_print(f"{exit_option}. Exit", tag="info")
+            self.show_item_menu(
+                f"Select item type {action}",
+                [
+                    (str(unsure_option), "🔎  Unsure about the category"),
+                    (str(exit_option), "↩  Back to main menu"),
+                ],
+            )
 
             item_type_choice = Utils.rich_prompting(
                 "Enter your choice (number)", tag="prompt"
@@ -438,13 +437,40 @@ class TransactionManager:
                 item_id=choice_id,
             )
 
-    def print_items(self):
+    def show_item_menu(self, title: str, extras=()) -> None:
         """
-        Prints the item types in a formatted manner.
+        Shows the item types as a menu, followed by any extra (key, label) entries.
         """
-        Utils.rich_print("Available Item Types", tag="prompt")
-        for key, val in self.item_types.items():
-            Utils.rich_print(
-                f"{key}. {val.cls_item_type.capitalize()}", tag="info"
-            )  # Styled output
+        options = [
+            (
+                key,
+                f"{CATEGORY_ICONS.get(cls.cls_item_type, '•')}  "
+                f"{cls.cls_item_type.replace('_', ' ').title()}",
+            )
+            for key, cls in self.item_types.items()
+        ]
+        Utils.show_menu(title, options + list(extras))
 
+    def get_dashboard_stats(self) -> dict:
+        """
+        Counts the current user's donations and borrows for the dashboard.
+        """
+        donated = sum(
+            self.db_manager.fetchall(
+                f"SELECT COUNT(*) FROM {cls.cls_item_type} WHERE user_name = ?",
+                (self.user_name,),
+            )[0][0]
+            for cls in self.item_types.values()
+        )
+        rows = self.db_manager.fetchall(
+            "SELECT status, due_date FROM transactions WHERE user_name = ?",
+            (self.user_name,),
+        )
+        today = datetime.now().strftime("%Y-%m-%d")
+        active = [due for status, due in rows if status == "borrowed"]
+        return {
+            "donated": donated,
+            "borrowing": len(active),
+            "overdue": sum(1 for due in active if due < today),
+            "returned": sum(1 for status, _ in rows if status == "returned"),
+        }
