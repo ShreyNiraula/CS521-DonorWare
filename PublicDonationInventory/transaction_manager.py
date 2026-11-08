@@ -193,7 +193,7 @@ class TransactionManager:
                 f"""
                 SELECT '{table_name}' as category, {', '.join(select_columns)}, user_name
                 FROM {table_name}
-                WHERE user_name = '{self.user_name}'
+                WHERE user_name = ?
             """
             )
 
@@ -201,8 +201,9 @@ class TransactionManager:
         final_query = (
             f"SELECT Category, {', '.join(common_columns)}, user_name FROM ({query})"
         )
+        params = tuple(self.user_name for _ in self.item_types)
         return ["Category"] + common_columns + ["user_name"], self.db_manager.fetchall(
-            final_query
+            final_query, params
         )
 
     def get_transaction_history(self, is_active):
@@ -237,11 +238,12 @@ class TransactionManager:
                 SELECT '{table_name}' as Category, t.id as TransactionId, {', '.join(select_columns)}, t.user_name as user_name
                 FROM transactions t
                 JOIN {table_name} b ON t.item_id = b.id
-                WHERE t.item_type = '{table_name}' AND t.user_name = '{self.user_name}' {borrow_filter}
+                WHERE t.item_type = '{table_name}' AND t.user_name = ? {borrow_filter}
                 """
             )
 
         query = "\n UNION ALL \n".join(sub_queries)
+        params = tuple(self.user_name for _ in self.item_types)
         if is_active:
             query = f"""
             SELECT * FROM ({query}) 
@@ -252,7 +254,7 @@ class TransactionManager:
             "TransactionId",
         ] + common_columns + extra_columns + [
             "user_name"
-        ], self.db_manager.fetchall(query)
+        ], self.db_manager.fetchall(query, params)
 
     def complete_add_action(self):
         """
