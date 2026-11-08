@@ -1,4 +1,5 @@
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 console = Console()
 
@@ -13,7 +14,7 @@ class Utils:
         """
         colors = {"success": "green", "error": "red", "info": "cyan", "prompt": "yellow"}
         color = colors.get(tag, "cyan")
-        console.print(f"[{color}]{message}[/{color}]")
+        console.print(f"[{color}]{escape(message)}[/{color}]")
 
     @staticmethod
     def rich_prompting(prompt_message: str, tag: str = "info") -> str:
@@ -26,7 +27,7 @@ class Utils:
         """
         colors = {"success": "green", "error": "red", "info": "cyan", "prompt": "yellow"}
         color = colors.get(tag, "cyan")
-        return console.input(f"[{color}]{prompt_message}: [/{color}]")
+        return console.input(f"[{color}]{escape(prompt_message)}: [/{color}]")
 
     @staticmethod
     def format_output_display(columns, results):
@@ -40,10 +41,10 @@ class Utils:
 
         # columns to table
         for col in columns:
-            table.add_column(col.capitalize(), max_width=30)
+            table.add_column(escape(str(col)).capitalize(), max_width=30)
 
         # add rows to the table, replacing None values with an empty string
         for row in results:
-            table.add_row(*[str(cell) if cell is not None else "" for cell in row])
+            table.add_row(*[escape(str(cell)) if cell is not None else "" for cell in row])
 
         console.print(table)

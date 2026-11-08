@@ -100,7 +100,7 @@ class TransactionManager:
             results = self.db_manager.fetchall(query, like_params)
             return ["Category", "id"] + fields, results
         except Exception as e:
-            Utils.rich_print(f"[red bold]Error during search[/red bold] {e}", tag="error")
+            Utils.rich_print(f"Error during search: {e}", tag="error")
 
     def search_for_every_item_type(self, search_word):
         """
