@@ -23,6 +23,24 @@ class TransactionManager:
         self.user_name = user_name
         self.item_types = item_types
 
+    @staticmethod
+    def build_like_clause(fields):
+        """
+        Builds a parenthesised OR-joined LIKE clause for the given fields.
+        Pair it with like_params(), which escapes wildcard characters.
+        """
+        return "(" + " OR ".join(f"{f} LIKE ? ESCAPE '\\'" for f in fields) + ")"
+
+    @staticmethod
+    def like_params(search_word: str, count: int) -> tuple:
+        """
+        Builds the parameters for build_like_clause, escaping %, _ and the escape character.
+        """
+        escaped = (
+            search_word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        )
+        return tuple(f"%{escaped}%" for _ in range(count))
+
     def borrow_item(
         self, item_type: str, item_id: int, borrow_duration_days: int = 7
     ) -> None:
@@ -92,15 +110,12 @@ class TransactionManager:
         cls_item_type = item_type.cls_item_type
 
         # search by anything using fields present in item_type
-        like_clauses = " OR ".join([f"{field} LIKE ?" for field in fields])
+        like_clauses = self.build_like_clause(fields)
         query = f"SELECT '{cls_item_type}' as Category, * FROM {cls_item_type} WHERE {like_clauses}"
 
-        like_params = tuple(f"%{search_word}%" for _ in fields)
-        try:
-            results = self.db_manager.fetchall(query, like_params)
-            return ["Category", "id"] + fields, results
-        except Exception as e:
-            Utils.rich_print(f"Error during search: {e}", tag="error")
+        like_params = self.like_params(search_word, len(fields))
+        results = self.db_manager.fetchall(query, like_params)
+        return ["Category", "id"] + fields, results
 
     def search_for_every_item_type(self, search_word):
         """
@@ -128,20 +143,16 @@ class TransactionManager:
             ]
             column_selection = ", ".join(selected_columns)
 
-            like_clauses = " OR ".join([f"{field} LIKE ?" for field in fields])
+            like_clauses = self.build_like_clause(fields)
             sub_queries.append(
                 f"SELECT '{table_name}' as Category, id, {column_selection} FROM {table_name} WHERE {like_clauses}"
             )
-            like_params.extend(f"%{search_word}%" for _ in fields)
+            like_params.extend(self.like_params(search_word, len(fields)))
 
         query = "\n UNION \n".join(sub_queries)
 
-        try:
-            results = self.db_manager.fetchall(query, tuple(like_params))
-            Utils.rich_print("Search results retrieved successfully!", tag="success")
-            return ["Category", "id"] + common_columns, results
-        except Exception as e:
-            Utils.rich_print(f"Error during search: {e}", tag="error")
+        results = self.db_manager.fetchall(query, tuple(like_params))
+        return ["Category", "id"] + common_columns, results
 
     def get_borrowed_given_item(self, item_type, search_word):
         """
@@ -154,21 +165,17 @@ class TransactionManager:
         fields = item_type.fields
         cls_item_type = item_type.cls_item_type
 
-        like_clauses = " OR ".join([f"{field} LIKE ?" for field in fields])
+        like_clauses = self.build_like_clause([f"i.{field}" for field in fields])
         query = f"""
         SELECT t.id as TransactionId, i.*
         FROM transactions t
         JOIN {cls_item_type} i ON t.item_id = i.id
         WHERE t.user_name = ? AND t.item_type='{cls_item_type}' AND t.status = 'borrowed' AND {like_clauses}
         """
-        params = tuple([self.user_name] + [f"%{search_word}%" for _ in fields])
+        params = (self.user_name,) + self.like_params(search_word, len(fields))
 
-        try:
-            results = self.db_manager.fetchall(query, params)
-            Utils.rich_print(f"Borrowed items found for {self.user_name}.", tag="success")
-            return ["TransactionId", "id"] + fields, results
-        except Exception as e:
-            Utils.rich_print(f"Error during retrieval of borrowed items: {e}", tag="error")
+        results = self.db_manager.fetchall(query, params)
+        return ["TransactionId", "id"] + fields, results
 
     def get_items_added_by_user(self):
         """
@@ -247,7 +254,7 @@ class TransactionManager:
         if is_active:
             query = f"""
             SELECT * FROM ({query}) 
-            ORDER BY ABS(julianday(due_date) - julianday(borrow_date)) ASC
+            ORDER BY due_date ASC
             """
         return [
             "Category",
@@ -320,7 +327,7 @@ class TransactionManager:
 
                 if item_type_choice == exit_option:
                     Utils.rich_print("Returning to the main menu...", tag="success")
-                    return [], []  # Exit to main menu
+                    return [], [], None  # Exit to main menu
 
                 elif item_type_choice == unsure_option:
                     search_word = Utils.rich_prompting(
@@ -330,6 +337,12 @@ class TransactionManager:
                         involved_cols, results = self.get_transaction_history(
                             is_active=True
                         )
+                        needle = search_word.strip().lower()
+                        results = [
+                            row
+                            for row in results
+                            if any(needle in str(cell).lower() for cell in row)
+                        ]
                     else:
                         involved_cols, results = self.search_for_every_item_type(
                             search_word
