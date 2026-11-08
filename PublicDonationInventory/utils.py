@@ -28,7 +28,7 @@ CATEGORY_ICONS = {
     "magazine": "📰",
     "journal": "📓",
     "manga": "🎌",
-    "western_comic": "💥",
+    "western_comic": "🦸",
     "research_paper": "🔬",
 }
 
@@ -102,7 +102,6 @@ class Utils:
         """
         title = _gradient("D O N O R W A R E", *BANNER_COLORS)
         body = Group(
-            Align.center(Text("📚  ✦  📖  ✦  📰  ✦  📓  ✦  🎌  ✦  🔬")),
             Align.center(title),
             Align.center(Text("share what you've read, borrow what you'll love", style="italic dim")),
         )
@@ -166,7 +165,7 @@ class Utils:
         console.print(
             Panel(
                 Columns(panels, align="center", expand=True),
-                title=f"[bold bright_cyan]👤 {escape(user_name)}[/]",
+                title=f"[bold bright_cyan]{escape(user_name)}[/]",
                 box=box.ROUNDED,
                 border_style="bright_blue",
                 width=_width(),

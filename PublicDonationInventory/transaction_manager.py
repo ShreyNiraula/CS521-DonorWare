@@ -285,7 +285,7 @@ class TransactionManager:
         while True:
             exit_option = len(self.item_types) + 1
 
-            self.show_item_menu("Add an item", [(str(exit_option), "↩  Back to main menu")])
+            self.show_item_menu("Add an item", [(str(exit_option), "Back to main menu")])
 
             item_type_choice = Utils.rich_prompting(
                 "Enter your choice (number)", tag="prompt"
@@ -327,8 +327,8 @@ class TransactionManager:
             self.show_item_menu(
                 f"Select item type {action}",
                 [
-                    (str(unsure_option), "🔎  Unsure about the category"),
-                    (str(exit_option), "↩  Back to main menu"),
+                    (str(unsure_option), "Unsure about the category"),
+                    (str(exit_option), "Back to main menu"),
                 ],
             )
 

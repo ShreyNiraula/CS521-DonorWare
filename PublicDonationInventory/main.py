@@ -40,7 +40,7 @@ def authenticate(db_manager: DBManager) -> Optional[str]:
     while True:
         Utils.show_menu(
             "Welcome",
-            [("1", "✨  Register"), ("2", "🔑  Login"), ("3", "👋  Exit")],
+            [("1", "Register"), ("2", "Login"), ("3", "Exit")],
         )
         action = Utils.rich_prompting(
             "From the options, select your choice (number)", tag="prompt"
@@ -92,9 +92,9 @@ def personal_inventory(transaction_manager: TransactionManager) -> None:
     Utils.show_menu(
         "Personal Inventory",
         [
-            ("1", "🎁  Items you have contributed"),
-            ("2", "🕘  Everything you have borrowed so far"),
-            ("3", "📖  Items you are borrowing now"),
+            ("1", "Items you have contributed"),
+            ("2", "Everything you have borrowed so far"),
+            ("3", "Items you are borrowing now"),
         ],
     )
     choice = Utils.rich_prompting("Enter your choice (number)", tag="prompt").strip()
@@ -134,12 +134,12 @@ def run_session(db_manager: DBManager, user_name: str) -> None:
         Utils.show_menu(
             "Main menu",
             [
-                ("1", "➕  Add Items"),
-                ("2", "🔍  Search Items"),
-                ("3", "📥  Borrow Items"),
-                ("4", "📤  Return Items"),
-                ("5", "👤  Personal Inventory"),
-                ("6", "🚪  Log out"),
+                ("1", "Add Items"),
+                ("2", "Search Items"),
+                ("3", "Borrow Items"),
+                ("4", "Return Items"),
+                ("5", "Personal Inventory"),
+                ("6", "Log out"),
             ],
         )
         action = Utils.rich_prompting("Enter your choice (number)", tag="prompt").strip()
