@@ -12,6 +12,14 @@ material, and other members borrow and return it. Built with Python, SQLite and
 - **Borrow and return**: items are lent for 7 days. You can't borrow your own donations or an item someone else has out.
 - **Personal inventory**: what you donated, your full borrow history, and your current borrows ordered by due date.
 
+## Interface
+
+The terminal UI is built with Rich: a gradient banner, menus in panels with category
+icons, a dashboard of your donated / borrowing / overdue / returned counts at login,
+zebra-striped tables with colored status and an overdue marker, and spinners while
+passwords are hashed. Use a terminal with true-color and emoji support (iTerm2,
+Terminal.app, Windows Terminal, VS Code's terminal) for the best result.
+
 ## Requirements
 
 - Python 3.9+
