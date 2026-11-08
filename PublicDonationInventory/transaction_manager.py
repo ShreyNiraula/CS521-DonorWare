@@ -399,7 +399,7 @@ class TransactionManager:
         id_label = "ID"
         if is_return:
             action = "to return"
-            id_label = "TransactionId"
+            id_label = "Txn ID"
 
         if str(item_type_choice) not in self.item_types.keys():
             choice_category = (
