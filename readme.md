@@ -32,32 +32,39 @@ DonorWare is a Python-based warehouse management system designed to facilitate t
 
 ## How To:
 
-1. Clone the repository:
+Requires Python 3.9+.
+
+1. Clone the repository and enter it:
    ```bash
    git clone https://github.com/ShreyNiraula/CS521-DonorWare.git
-
-2. Create Virtual environment 
-   ```bash
-    python3 -m venv <name_of_virutalenv>
-    cd <name_of_virutalenv>
-    For mac/linux: source <name_of_virutalenv>/bin/activate
-    
-3. Navigate to project directory
-    ```bash
    cd CS521-DonorWare
+   ```
 
-4. In Virtual environment, pip install requirements as:
+2. Create and activate a virtual environment:
    ```bash
-    pip3 install -r requirements.txt
+   python3 -m venv .venv
+   source .venv/bin/activate        # macOS / Linux
+   .venv\Scripts\activate           # Windows
+   ```
 
-5. Run the application:
-    ```bash
-   cd PublicDonationInventory
-   python3 main.py
-   
+3. Install the requirements:
+   ```bash
+   pip3 install -r requirements.txt
+   ```
+
+4. Run the application:
+   ```bash
+   python3 PublicDonationInventory/main.py
+   ```
+   The SQLite database (`library.db`) is created next to the code on first run.
+
+5. Run the tests:
+   ```bash
+   python3 -m unittest discover -s tests -t .
+   ```
 
 ## Once the application is running, follow These Steps:
-1. **Register** with a `user_name` and `password`.
+1. **Register** with a `user_name` and a `password` of 6-72 bytes (you will be asked to confirm it), or log in.
 2. Use the **Add Items** option to add any item you want.
 3. You can **Search**, **Borrow**, and **Return** items.
 4. Visit your **Personal Inventory** to:
