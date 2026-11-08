@@ -52,6 +52,21 @@ class TransactionManager:
         :param item_id: The ID of the item to borrow.
         :param borrow_duration_days: Duration for borrowing in days.
         """
+        valid_types = {cls.cls_item_type for cls in self.item_types.values()}
+        if item_type not in valid_types:
+            Utils.rich_print(f"Unknown category '{item_type}'.", tag="error")
+            return
+
+        owner = self.db_manager.fetchall(
+            f"SELECT user_name FROM {item_type} WHERE id = ?", (item_id,)
+        )
+        if not owner:
+            Utils.rich_print(f"No {item_type} found with ID {item_id}.", tag="error")
+            return
+        if owner[0][0] == self.user_name:
+            Utils.rich_print("You cannot borrow an item you donated.", tag="error")
+            return
+
         query = "SELECT * FROM transactions WHERE item_id = ? AND item_type = ? AND status = 'borrowed'"
         active_borrows = self.db_manager.fetchall(query, (item_id, item_type))
 
@@ -388,10 +403,15 @@ class TransactionManager:
             id_label = "TransactionId"
 
         if str(item_type_choice) not in self.item_types.keys():
-            choice_category = Utils.rich_prompting(
-                f"Please select the category of the item you want {action}",
-                tag="prompt",
-            ).lower()
+            choice_category = (
+                Utils.rich_prompting(
+                    f"Please select the category of the item you want {action}",
+                    tag="prompt",
+                )
+                .strip()
+                .lower()
+                .replace(" ", "_")
+            )
         else:
             choice_category = self.item_types[str(item_type_choice)]().cls_item_type
 
