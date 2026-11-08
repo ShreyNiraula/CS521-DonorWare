@@ -1,9 +1,15 @@
 from getpass import getpass
+from pathlib import Path
 import bcrypt
 
 import sqlite3
 from typing import List, Tuple, Optional
 from utils import Utils
+
+# keep the database next to the code so it does not depend on the working directory
+DEFAULT_DB_PATH = str(Path(__file__).resolve().parent / "library.db")
+MIN_PASSWORD_LENGTH = 6
+MAX_PASSWORD_BYTES = 72  # bcrypt ignores anything beyond this
 
 
 class DBManager:
@@ -11,7 +17,7 @@ class DBManager:
     Handles database operations such as table creation, data insertion, querying, and connection management.
     """
 
-    def __init__(self, db_name: str = "library.db") -> None:
+    def __init__(self, db_name: str = DEFAULT_DB_PATH) -> None:
         """
         Initializes the database connection.
 
@@ -154,23 +160,56 @@ class UserManager:
         """
         self.db_manager.create_users_table()
 
-    def register(self) -> None:
+    def validate_credentials(self, confirm: bool = False) -> Optional[str]:
         """
-        Prepares query to register the user using db manager execute function.
-        Password is hashed while storing in database
+        Checks the entered credentials against basic rules.
+
+        :param confirm: Whether to ask for the password a second time (registration).
+        :return: An error message, or None if the credentials are acceptable.
         """
+        if not self.user_name or not self.user_name.strip():
+            return "User name cannot be empty."
+        if not self.password:
+            return "Password cannot be empty."
+        if not confirm:
+            return None
+        if len(self.password) < MIN_PASSWORD_LENGTH:
+            return f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+        if len(self.password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+            return f"Password must be at most {MAX_PASSWORD_BYTES} bytes."
+        if getpass("Confirm password: ") != self.password:
+            return "Passwords do not match."
+        return None
+
+    def register(self) -> bool:
+        """
+        Validates the credentials, then registers the user with a hashed password.
+
+        :return: True if the user was registered, False otherwise.
+        """
+        error = self.validate_credentials(confirm=True)
+        if error:
+            Utils.rich_print(error, tag="error")
+            return False
+
+        if self.db_manager.fetchall(
+            "SELECT 1 FROM users WHERE user_name = ?", (self.user_name,)
+        ):
+            Utils.rich_print(f"User '{self.user_name}' already exists.", tag="error")
+            return False
+
         try:
-            hashed_password = self.hash_password(self.password)
             self.db_manager.execute(
                 "INSERT INTO users (user_name, password) VALUES (?, ?)",
-                (self.user_name, hashed_password),
+                (self.user_name, self.hash_password(self.password)),
             )
-            Utils.rich_print(
-                f"User '{self.user_name}' registered successfully!", tag="success"
-            )
-        except Exception as e:
-            Utils.rich_print(f"User '{self.user_name}' already exist.", tag="error")
-            raise
+        except sqlite3.Error:
+            return False  # DBManager.execute already reported the error
+
+        Utils.rich_print(
+            f"User '{self.user_name}' registered successfully!", tag="success"
+        )
+        return True
 
     def login(self) -> bool:
         """
@@ -178,6 +217,11 @@ class UserManager:
 
         :return: True if login is successful, False otherwise.
         """
+        error = self.validate_credentials()
+        if error:
+            Utils.rich_print(error, tag="error")
+            return False
+
         user = self.db_manager.fetchall(
             "SELECT password FROM users WHERE user_name = ?", (self.user_name,)
         )
