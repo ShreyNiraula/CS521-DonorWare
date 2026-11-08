@@ -1,6 +1,8 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from utils import Utils
+
+DATE_FORMAT = "%Y-%m-%d"
 
 
 class Inventory:
@@ -19,34 +21,54 @@ class Inventory:
 
     def get_fields(self) -> None:
         """
-        Function that calls create table() function of db manger to create the table
+        Prompts for every field of the item. The 'name' field is mandatory and
+        fields ending in 'date' are validated and stored as YYYY-MM-DD text.
         """
-
-        # loop through fields to prompt for values
         for field in self.fields:
-            # handle mandatory name fields
-            if "name" in field:
-                while True:
-                    value = Utils.rich_prompting(
-                        f"Enter {field} of {self.cls_item_type}(cannot be empty)",
-                        tag="info",
-                    )
-                    if value.strip():  # make sure that field is not empty
-                        break
-                    else:
-                        Utils.rich_print(
-                            f"Name is compulsory. Please enter the name of {self.cls_item_type}",
-                            tag="error",
-                        )
-
-            # handle other fields
+            if field == "name":
+                value = self._prompt_required(field)
+            elif field.endswith("date"):
+                value = self._prompt_date(field)
             else:
                 value = Utils.rich_prompting(
                     f"Enter {field} of {self.cls_item_type}", tag="info"
                 )
-
-            # set the attribute for the field
             setattr(self, field, value)
+
+    def _prompt_required(self, field: str) -> str:
+        """
+        Keeps prompting until a non-empty value is entered.
+        """
+        while True:
+            value = Utils.rich_prompting(
+                f"Enter {field} of {self.cls_item_type}(cannot be empty)", tag="info"
+            ).strip()
+            if value:
+                return value
+            Utils.rich_print(
+                f"Name is compulsory. Please enter the name of {self.cls_item_type}",
+                tag="error",
+            )
+
+    def _prompt_date(self, field: str, date_format: str = DATE_FORMAT) -> Optional[str]:
+        """
+        Prompts for an optional date, re-asking until it is empty or valid.
+
+        :return: The date as YYYY-MM-DD text, or None if left empty.
+        """
+        while True:
+            value = Utils.rich_prompting(
+                f"Enter {field} in YYYY-mm-dd format. Eg: 2014-12-14 (optional)",
+                tag="info",
+            ).strip()
+            if not value:
+                return None
+            try:
+                return datetime.strptime(value, date_format).strftime(DATE_FORMAT)
+            except ValueError:
+                Utils.rich_print(
+                    "Invalid Date format. Please follow the example given.", tag="error"
+                )
 
     def create_inventory_layout_sqlite(self, db_manager) -> None:
         """
@@ -82,64 +104,6 @@ class Inventory:
         except Exception as e:
             Utils.rich_print(f"Error adding to inventory: {e}", tag="error")
 
-    def get_date_with_fields(self, date_format: str = "%Y-%m-%d") -> None:
-        """
-        Similar to get fields() function with customized date handling.
-        Child class overrides the get fields() function
-            by calling this function if date related field is present in its attributes
-
-        :param date_format: The expected date format for input.
-        """
-        date_format_mapper = {
-            "%Y-%m-%d": "YYYY-mm-dd format. Eg: 2014-12-14",
-            "%Y": "YYYY (year only). Eg: 2014.",
-        }
-
-        # loop through fields to prompt for values
-        for field in self.fields:
-            # handle mandatory name fields
-            if "name" in field:
-                while True:
-                    value = Utils.rich_prompting(
-                        f"Enter {field} of {self.cls_item_type}(cannot be empty)",
-                        tag="info",
-                    )
-                    if value.strip():  # make sure that field is not empty
-                        break
-                    else:
-                        Utils.rich_print(
-                            f"Name is compulsory. Please enter the name of {self.cls_item_type}",
-                            tag="error",
-                        )
-
-            # handle date field
-            elif "date" in field:
-                while True:
-                    try:
-                        value = Utils.rich_prompting(
-                            f"Enter {field} in {date_format_mapper[date_format]}",
-                            tag="info",
-                        )
-                        if value.strip():  # make sure that field is not empty
-                            value = datetime.strptime(value, date_format).date()
-                        else:
-                            value = None
-                        break
-                    except ValueError:
-                        Utils.rich_print(
-                            f"Invalid Date format. Please follow the example given.",
-                            tag="error",
-                        )
-
-            # handle other fields
-            else:
-                value = Utils.rich_prompting(
-                    f"Enter {field} of {self.cls_item_type}", tag="info"
-                )
-
-            # set the attribute for the field
-            setattr(self, field, value)
-
 
 class Book(Inventory):
     """
@@ -152,9 +116,6 @@ class Book(Inventory):
         super().__init__()
         self.fields = ["name", "author", "genre", "date"]
 
-    def get_fields(self) -> None:
-        self.get_date_with_fields()
-
 
 class Magazine(Inventory):
     """
@@ -166,9 +127,6 @@ class Magazine(Inventory):
     def __init__(self) -> None:
         super().__init__()
         self.fields = ["name", "publisher", "genre", "date"]
-
-    def get_fields(self) -> None:
-        self.get_date_with_fields()
 
 
 class Journal(Inventory):
@@ -217,6 +175,3 @@ class ResearchPaper(Inventory):
     def __init__(self) -> None:
         super().__init__()
         self.fields = ["name", "author", "journal_name", "abstract", "keywords", "date"]
-
-    def get_fields(self) -> None:
-        self.get_date_with_fields()
