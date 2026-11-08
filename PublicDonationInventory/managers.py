@@ -1,4 +1,3 @@
-from getpass import getpass
 from pathlib import Path
 import bcrypt
 
@@ -144,13 +143,11 @@ class UserManager:
     def get_fields(self) -> None:
         """
         Prompts the user for login/register credentials defined in the fields.
-        For password, getpass library is used to hide visibility when typing a password
+        The password prompt hides what is typed
         """
         for field in self.fields:
-            value = (
-                getpass(f"Enter {field}: ")
-                if field == "password"
-                else input(f"Enter {field}: ")
+            value = Utils.rich_prompting(
+                f"Enter {field}", tag="prompt", password=(field == "password")
             )
             setattr(self, field, value)
 
@@ -177,7 +174,7 @@ class UserManager:
             return f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
         if len(self.password.encode("utf-8")) > MAX_PASSWORD_BYTES:
             return f"Password must be at most {MAX_PASSWORD_BYTES} bytes."
-        if getpass("Confirm password: ") != self.password:
+        if Utils.rich_prompting("Confirm password", tag="prompt", password=True) != self.password:
             return "Passwords do not match."
         return None
 
@@ -201,7 +198,7 @@ class UserManager:
         try:
             self.db_manager.execute(
                 "INSERT INTO users (user_name, password) VALUES (?, ?)",
-                (self.user_name, self.hash_password(self.password)),
+                (self.user_name, self._hash_with_spinner()),
             )
         except sqlite3.Error:
             return False  # DBManager.execute already reported the error
@@ -227,12 +224,18 @@ class UserManager:
         )
         if user:
             stored_hash = user[0][0]
-            if bcrypt.checkpw(self.password.encode("utf-8"), stored_hash):
+            with Utils.status("Verifying credentials..."):
+                matches = bcrypt.checkpw(self.password.encode("utf-8"), stored_hash)
+            if matches:
                 Utils.rich_print(f"Welcome back, {self.user_name}!", tag="success")
                 return True
 
         Utils.rich_print("Invalid user_name or password.", tag="error")
         return False
+
+    def _hash_with_spinner(self) -> bytes:
+        with Utils.status("Securing your password..."):
+            return self.hash_password(self.password)
 
     @staticmethod
     def hash_password(password: str) -> bytes:
